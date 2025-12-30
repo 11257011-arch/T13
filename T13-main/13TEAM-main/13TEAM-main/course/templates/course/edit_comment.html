@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>編輯留言</title>
+  <style>
+    body { font-family: "微軟正黑體", sans-serif; margin: 30px; background: #fafafa; }
+    .box { max-width: 900px; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 16px; }
+    textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    a, button {
+      background-color: #007bff; color: white; padding: 6px 12px;
+      text-decoration: none; border-radius: 6px; margin-right: 6px;
+      border: none; cursor: pointer; display: inline-block;
+    }
+    a:hover, button:hover { background-color: #0056b3; }
+  </style>
+</head>
+<body>
+  <h2>編輯留言</h2>
+
+  <div class="box">
+    <form method="post">
+      {% csrf_token %}
+      <textarea name="content" rows="4" required>{{ comment.content }}</textarea>
+      <div style="margin-top:10px;">
+        <button type="submit">儲存</button>
+        <a href="{% url 'course_detail' comment.course.id %}">取消</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

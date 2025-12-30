@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ course.name }} - 課程詳情</title>
+  <style>
+    body { font-family:"微軟正黑體",sans-serif; margin:30px; background:#fafafa; }
+    h1 { font-size:28px; margin-bottom: 6px; }
+    .meta { color:#444; margin-bottom: 14px; }
+    .box { max-width: 950px; background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border:1px solid #ddd; padding:10px; text-align:center; }
+    th { background:#007bff; color:#fff; }
+    tr:nth-child(even) { background:#f5f7ff; }
+    a, button {
+      background:#007bff; color:#fff; padding:6px 12px; border-radius:6px;
+      text-decoration:none; border:none; cursor:pointer; margin-right:6px; display:inline-block;
+    }
+    a:hover, button:hover { background:#0056b3; }
+    hr { margin: 22px 0; border:none; border-top:1px solid #ddd; }
+
+    textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:10px; }
+    .comment { background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px; margin:12px 0; }
+    .comment small { color:#666; }
+    .reply {
+      margin-top:10px; margin-left:22px; padding:10px;
+      border-left:4px solid #007bff; background:#f5f7ff; border-radius:8px;
+    }
+    .tag-teacher {
+      display:inline-block; font-size:12px; padding:2px 8px;
+      background:#0d6efd; color:#fff; border-radius:999px; margin-right:6px;
+    }
+    .row { display:flex; align-items:center; gap:10px; }
+    .avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; }
+    .avatar-sm { width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #ddd; }
+    .avatar-fallback { background:#ddd; border-radius:50%; display:inline-block; border:1px solid #ddd; }
+  </style>
+</head>
+
+<body>
+  <h1>{{ course.name }}</h1>
+  <div class="meta">
+    <div>課程 ID：{{ course.id }}</div>
+    <div>學期：{{ course.semester }}</div>
+    <div>任課老師：{{ course.teacher.username }}</div>
+  </div>
+
+  <div class="box">
+    <h2>修課學生 / 成績</h2>
+
+    {% if enrollments %}
+      <table>
+        <tr>
+          <th>學生</th>
+          <th>期中分數</th>
+          <th>期末分數</th>
+          <th>平均</th>
+        </tr>
+        {% for e in enrollments %}
+          <tr>
+            <td>{{ e.student.username }}</td>
+            <td>{{ e.midterm|default:"-" }}</td>
+            <td>{{ e.final|default:"-" }}</td>
+            <td>{% if e.average %}{{ e.average }}{% else %}-{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p>目前尚無學生修課。</p>
+    {% endif %}
+
+    <div style="margin-top:12px;">
+      <a href="{% url 'enroll_course' course.id %}">加選</a>
+      <a href="{% url 'drop_course' course.id %}">退選</a>
+      <a href="{% url 'student_courses' %}">返回學生頁</a>
+      <a href="{% url 'my_grades' %}">查看成績</a>
+      <a href="{% url 'logout' %}">登出</a>
+    </div>
+
+    <hr>
+
+    <h2>課程留言（含老師回覆）</h2>
+
+    <!-- 新增留言 -->
+    <form method="post" style="margin-bottom:14px;">
+      {% csrf_token %}
+      <textarea name="content" rows="3" placeholder="輸入留言..." required></textarea>
+      <div style="margin-top:10px;">
+        <button type="submit">送出留言</button>
+      </div>
+    </form>
+
+    <!-- 留言列表：只顯示主留言 -->
+    {% for c in comments %}
+      {% if not c.parent %}
+        <div class="comment">
+          <!-- 留言者（含頭貼） -->
+          <div class="row">
+            {% if c.user.profile.avatar %}
+              <img class="avatar" src="{{ c.user.profile.avatar.url }}" alt="avatar">
+            {% else %}
+              <span class="avatar avatar-fallback"></span>
+            {% endif %}
+            <div>
+              <b>{{ c.user.username }}</b>
+              <small>（{{ c.created_at|date:"Y-m-d H:i" }}）</small>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;">{{ c.content }}</div>
+
+          {% if c.user == user %}
+            <div style="margin-top:10px;">
+              <a href="{% url 'edit_comment' c.id %}">編輯我的留言</a>
+            </div>
+          {% endif %}
+
+          <!-- 老師回覆（含頭貼） -->
+          {% for r in c.replies.all %}
+            <div class="reply">
+              <div class="row">
+                {% if r.user.profile.avatar %}
+                  <img class="avatar-sm" src="{{ r.user.profile.avatar.url }}" alt="avatar">
+                {% else %}
+                  <span class="avatar-sm avatar-fallback"></span>
+                {% endif %}
+                <div>
+                  <span class="tag-teacher">老師</span>
+                  <b>{{ r.user.username }}</b>
+                  <small>（{{ r.created_at|date:"Y-m-d H:i" }}）</small>
+                </div>
+              </div>
+              <div style="margin-top:8px;">{{ r.content }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% empty %}
+      <p>目前尚無留言</p>
+    {% endfor %}
+  </div>
+</body>
+</html>

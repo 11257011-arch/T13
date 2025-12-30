@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ course.name }} - 修課名單與留言</title>
+  <style>
+    body { font-family:"微軟正黑體",sans-serif; margin:30px; background:#fafafa; }
+    h1 { font-size:28px; margin-bottom: 6px; }
+    .meta { color:#444; margin-bottom: 14px; }
+    .box { max-width: 950px; background:#fff; border:1px solid #ddd; border-radius:12px; padding:16px; }
+    table { width:100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border:1px solid #ddd; padding:10px; text-align:center; }
+    th { background:#007bff; color:#fff; }
+    tr:nth-child(even) { background:#f5f7ff; }
+    input[type="number"] { width:120px; padding:6px; }
+    input[type="text"] { padding:8px; }
+    a, button {
+      background:#007bff; color:#fff; padding:6px 12px; border-radius:6px;
+      text-decoration:none; border:none; cursor:pointer; margin-right:6px; display:inline-block;
+    }
+    a:hover, button:hover { background:#0056b3; }
+    hr { margin: 22px 0; border:none; border-top:1px solid #ddd; }
+    .comment { background:#fff; border:1px solid #ddd; border-radius:10px; padding:12px; margin:10px 0; }
+    .comment small { color:#666; }
+    .reply { margin-top:10px; margin-left:20px; padding:10px; border-left:4px solid #007bff; background:#f5f7ff; border-radius:8px; }
+    .row { display:flex; align-items:center; gap:10px; }
+    .avatar { width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid #ddd; }
+    .avatar-sm { width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #ddd; }
+    .avatar-fallback { background:#ddd; border-radius:50%; display:inline-block; border:1px solid #ddd; }
+  </style>
+</head>
+
+<body>
+  <h1>{{ course.name }}</h1>
+  <div class="meta">
+    <div>學期：{{ course.semester }}</div>
+    <div>任課老師：{{ course.teacher.username }}</div>
+  </div>
+
+  <div class="box">
+    <h2>修課學生名單 / 輸入成績</h2>
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="_action" value="save_grades">
+
+      <table>
+        <tr>
+          <th>學生</th>
+          <th>期中分數</th>
+          <th>期末分數</th>
+        </tr>
+
+        {% for e in enrollments %}
+        <tr>
+          <td>{{ e.student.username }}</td>
+          <td><input type="number" step="0.5" name="mid_{{ e.id }}" value="{{ e.midterm|default_if_none:'' }}"></td>
+          <td><input type="number" step="0.5" name="final_{{ e.id }}" value="{{ e.final|default_if_none:'' }}"></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">目前尚無學生修課</td></tr>
+        {% endfor %}
+      </table>
+
+      <div style="margin-top:12px;">
+        <button type="submit">儲存成績</button>
+        <a href="{% url 'teacher_courses' %}">返回教師首頁</a>
+        <a href="{% url 'logout' %}">登出</a>
+      </div>
+    </form>
+
+    <hr>
+
+    <h2>學生留言（老師可回覆）</h2>
+
+    {% for c in comments %}
+      {% if not c.parent %}
+        <div class="comment">
+          <div class="row">
+            {% if c.user.profile.avatar %}
+              <img class="avatar" src="{{ c.user.profile.avatar.url }}" alt="avatar">
+            {% else %}
+              <span class="avatar avatar-fallback"></span>
+            {% endif %}
+            <div>
+              <b>{{ c.user.username }}</b>
+              <small>（{{ c.created_at|date:"Y-m-d H:i" }}）</small>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;">{{ c.content }}</div>
+
+          {% for r in c.replies.all %}
+            <div class="reply">
+              <div class="row">
+                {% if r.user.profile.avatar %}
+                  <img class="avatar-sm" src="{{ r.user.profile.avatar.url }}" alt="avatar">
+                {% else %}
+                  <span class="avatar-sm avatar-fallback"></span>
+                {% endif %}
+                <div>
+                  <b>老師 {{ r.user.username }}</b>
+                  <small>（{{ r.created_at|date:"Y-m-d H:i" }}）</small>
+                </div>
+              </div>
+              <div style="margin-top:8px;">{{ r.content }}</div>
+            </div>
+          {% endfor %}
+
+          <form method="post" action="{% url 'reply_comment' c.id %}" style="margin-top:10px;">
+            {% csrf_token %}
+            <input type="text" name="content" placeholder="老師回覆..." required style="width:70%;">
+            <button type="submit">回覆</button>
+          </form>
+        </div>
+      {% endif %}
+    {% empty %}
+      <p>目前尚無留言</p>
+    {% endfor %}
+  </div>
+</body>
+</html>
